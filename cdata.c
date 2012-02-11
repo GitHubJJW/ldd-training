@@ -15,14 +15,39 @@
 #include <asm/io.h>
 #include <asm/uaccess.h>
 
+#define MSG(m...) printk(KERN_INFO "CDDATA: " m "\n")
+
+#define DEV_MAJOR 121
+#define DEV_NAME  "debug"
+
 static int cdata_open(struct inode *inode, struct file *filp)
+{
+	MSG("CDATA V0.1.0");
+	MSG("  Copyright (C) 2004 www.jollen.org");
+	
+	if(register_chrdev(DEV_MAJOR, DEV_NAME, &card_fops) < 0){
+		MSG("Couldn't register a device.");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int cdata_close(struct inode *inode, struct file *filp)
 {
 	return 0;
 }
 
+ssize_t cdata_write(struct file *, const char *, size_t, loff_t *)
+{
+}
+
 static struct file_operations cdata_fops = {	
 	open:		cdata_open,
+	release:	cdata_close,
+	write:		cdata_write,
 };
+
 
 int cdata_init_module(void)
 {
