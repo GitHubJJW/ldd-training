@@ -22,12 +22,14 @@
 
 static int cdata_open(struct inode *inode, struct file *filp)
 {
-
+	while(1);
+	printk(KERN_INFO "CDATA: open a device.\n");
 	return 0;
 }
 
 static int cdata_close(struct inode *inode, struct file *filp)
 {
+	printk(KERN_INFO "CDATA: close a device.\n");
 	return 0;
 }
 
