@@ -22,7 +22,6 @@
 
 static int cdata_open(struct inode *inode, struct file *filp)
 {
-	while(1);
 	printk(KERN_INFO "CDATA: open a device.\n");
 	return 0;
 }
