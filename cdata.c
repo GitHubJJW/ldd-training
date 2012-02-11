@@ -22,13 +22,6 @@
 
 static int cdata_open(struct inode *inode, struct file *filp)
 {
-	MSG("CDATA V0.1.0");
-	MSG("  Copyright (C) 2004 www.jollen.org");
-	
-	if(register_chrdev(DEV_MAJOR, DEV_NAME, &card_fops) < 0){
-		MSG("Couldn't register a device.");
-		return -1;
-	}
 
 	return 0;
 }
@@ -38,8 +31,9 @@ static int cdata_close(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-ssize_t cdata_write(struct file *, const char *, size_t, loff_t *)
+ssize_t cdata_write(struct file *filp, const char *buf, size_t size, loff_t *off)
 {
+	return 0;
 }
 
 static struct file_operations cdata_fops = {	
@@ -51,10 +45,18 @@ static struct file_operations cdata_fops = {
 
 int cdata_init_module(void)
 {
+	MSG("CDATA V0.1.0");
+	MSG("  Copyright (C) 2004 www.jollen.org");
+	
+	if(register_chrdev(121, "cdata", &cdata_fops) < 0){
+		printk(KERN_INFO "CDATA: couldn't register a device.\n");
+		return -1;
+	}
 }
 
 void cdata_cleanup_module(void)
 {
+	unregister_chrdev(DEV_MAJOR, "cdata");
 }
 
 module_init(cdata_init_module);
