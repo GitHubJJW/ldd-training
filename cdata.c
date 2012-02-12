@@ -28,6 +28,7 @@ static int cdata_open(struct inode *inode, struct file *filp)
 	}
 	printk(KERN_INFO "CDATA: open a device.\n");
 	printk(KERN_INFO "minor number = %d", MINOR(inode->i_rdev));
+	printk(KERN_INFO "driver count number = %d", THIS_MODULE);
 	return 0;
 }
 //system call for close
