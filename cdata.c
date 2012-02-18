@@ -14,62 +14,109 @@
 #include <linux/input.h>
 #include <asm/io.h>
 #include <asm/uaccess.h>
+#include "cdata_ioctl.h"
 
-#define MSG(m...) printk(KERN_INFO "CDDATA: " m "\n")
-
-#define DEV_MAJOR 121
-#define DEV_NAME  "debug"
-//system call for open
-static int cdata_open(struct inode *inode, struct file *filp)
-{
-	if(MINOR(inode->i_rdev) != 0){
-		printk("error minor number");
-		return -ENODEV;
-	}
-	printk(KERN_INFO "CDATA: open a device.\n");
-	printk(KERN_INFO "minor number = %d", MINOR(inode->i_rdev));
-	printk(KERN_INFO "driver count number = %d", THIS_MODULE);
-	return 0;
-}
-//system call for close
-static int cdata_close(struct inode *inode, struct file *filp)
-{
-	printk(KERN_INFO "CDATA: close a device.\n");
-	return 0;
-}
-//system call for write
-ssize_t cdata_write(struct file *filp, const char *buf, size_t size, loff_t *off)
-{
-	return 0;
-}
-
-//define file operations
-static struct file_operations cdata_fops = {	
-	owner:		THIS_MODULE,
-	open:		cdata_open,
-	release:	cdata_close,
-	//read:		cdata_read,
-	write:		cdata_write,
-	//ioctl:		cdata_ioctl,
-	
+struct cdata_t {
+    unsigned long *fb;
 };
 
+static int cdata_open(struct inode *inode, struct file *filp)
+{
+	int i;
+	int minor;
+	struct cdata_t *cdata;
+
+	printk(KERN_INFO "CDATA: in open\n");
+
+	minor = MINOR(inode->i_rdev);
+	printk(KERN_INFO "CDATA: minor = %d\n", minor);
+
+	cdata= kmalloc(sizeof(struct cdata_t), GFP_KERNEL);
+	cdata->fb = ioremap(0x33f00000, 320*240*4);
+
+	return 0;
+}
+
+static ssize_t cdata_read(struct file *filp, char *buf, size_t size, loff_t *off)
+{
+}
+
+static ssize_t cdata_write(struct file *filp, const char *buf, size_t size,
+loff_t *off)
+{
+	unsigned char *fb;
+	unsigned int i;
+
+	//printk(KERN_INFO "CDATA: in write\n");
+	//printk(KERN_INFO "buf = %s\n", buf);
+
+	//dirty
+	/*
+	for(i = 0; i < size ; i++)
+	{
+		writeb(buf[i], fb++);
+	}
+	*/
+	
+	return 0;
+}
+
+static int cdata_close(struct inode *inode, struct file *filp)
+{
+	return 0;
+}
+
+static int cdata_ioctl(struct inode *inode, struct file *filp,
+unsigned int cmd, unsigned long arg)
+{
+	int n;
+	unsigned long *fb;
+	int i;
+
+	switch (cmd) {
+		case CDATA_CLEAR:
+			n = *((int *)arg); // FIXME: dirty
+			printk(KERN_INFO "CDATA_CLEAR: %d pixel\n", n);
+
+			// FIXME: dirty
+			fb = ioremap(0x33f00000, n*4);
+			for (i = 0; i < n; i++)
+			writel(0x00ff0000, fb++);
+
+		break;
+	}
+}
+
+static struct file_operations cdata_fops = {
+	owner: THIS_MODULE,
+	open: cdata_open,
+	release: cdata_close,
+	read: cdata_read,
+	write: cdata_write,
+	ioctl: cdata_ioctl,
+
+};
 
 int cdata_init_module(void)
 {
-	MSG("CDATA V0.1.0");
-	MSG("  Copyright (C) 2004 www.jollen.org");
-	//register driver (VFS)
-	if(register_chrdev(121, "cdata", &cdata_fops) < 0){
-		printk(KERN_INFO "CDATA: couldn't register a device.\n");
+	unsigned long *fb;
+	int i;
+
+	fb = ioremap(0x33f00000, 320*240*4);
+	for (i = 0; i < 320*240; i++)
+	writel(0x00ff0000, fb++);
+
+	if (register_chrdev(121, "cdata", &cdata_fops) < 0) {
+		printk(KERN_INFO "CDATA: can't register driver\n");
 		return -1;
 	}
+	printk(KERN_INFO "CDATA: cdata_init_module\n");
+	return 0;
 }
 
 void cdata_cleanup_module(void)
 {
-	//unregister driver (VFS)
-	unregister_chrdev(DEV_MAJOR, "cdata");
+	unregister_chrdev(121, "cdata");
 }
 
 module_init(cdata_init_module);
