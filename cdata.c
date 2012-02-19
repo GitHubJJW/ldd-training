@@ -27,6 +27,8 @@ struct cdata_t {
 
     struct timer_list flush_timer;
     struct timer_list sched_timer;
+
+    wait_queue_head_t wq;
 };
 
 static int cdata_open(struct inode *inode, struct file *filp)
@@ -47,6 +49,8 @@ static int cdata_open(struct inode *inode, struct file *filp)
 
 	init_timer(&cdata->flush_timer);
 	init_timer(&cdata->sched_timer);
+
+	init_waitqueue_head(&cdata->wq);
 
 	filp->private_data = (void *)cdata;
 
@@ -88,13 +92,16 @@ void flush_lcd(unsigned long priv)
 
 void cdata_wake_up(unsigned long priv)
 {
-	struct cdata_t *cdata = (struct cdata *)filp->private_data;
+	struct cdata_t *cdata = (struct cdata *)priv;
 	struct timer_list *sched;
+        wait_queue_head_t *wq;
 
-	current->state = TASK_RUNNING;
-	schedule();
+	sched = &cdata->sched_timer;
+	wq = &cdata->wq;
 
-	sched->expire = jiffies + 10;
+	wake_up(wq);
+
+	sched->expires = jiffies + 10;
 	add_timer(sched);
 }
 
@@ -107,40 +114,49 @@ loff_t *off)
 	unsigned char *pixel;
 	unsigned int index;
 	unsigned int i;
+        wait_queue_head_t *wq;
+	wait_queue_t wait;
 
 	pixel = cdata->buf;
 	index = cdata->index;
 	timer = &cdata->flush_timer;
 	sched = &cdata->sched_timer;
+	wq = &cdata->wq;
 
 	for (i = 0; i < size; i++) {
 		if (index >= BUF_SIZE) {
 
-		cdata->index = index;
-		timer->expires = jiffies + 5*HZ;
-		timer->function = flush_lcd;
-		timer->data = (unsigned long)cdata;
-		add_timer(timer);
+			cdata->index = index;
+			timer->expires = jiffies + 5*HZ;
+			timer->function = flush_lcd;
+			timer->data = (unsigned long)cdata;
+			add_timer(timer);
 
-		sched->expire = jiffies + 10;
-		sched->function = cdata_wake_up;
-		sched->data = (unsigned long)cdata;
-		add_timer(sched);
-	repeat:
-		// FIXME: Process scheduling
-	  	current->state = TASK_INTERRUPTIBLE;
-		schedule();
+			sched->expires = jiffies + 10;
+			sched->function = cdata_wake_up;
+			sched->data = (unsigned long)cdata;
+			add_timer(sched);
+
+			wait.flags = 0;
+			wait.task = current;
+			add_wait_queue(wq, &wait);
+		repeat:
+			current->state = TASK_INTERRUPTIBLE;
+			schedule();
  
-		index = cdata->index;
+			index = cdata->index;
 
-		if (index != 0)
-			goto repeat;
+			if (index != 0)
+				goto repeat;
+
+			remove_wait_queue(wq, &wait);
+			del_timer(sched);
 		}
-	copy_from_user(&pixel[index], &buf[i], 1);
-	index++;
+		copy_from_user(&pixel[index], &buf[i], 1);
+		index++;
 	}
-
-     	cdata->index = index;
+	
+		cdata->index = index;
 
 	return 0;
 }
