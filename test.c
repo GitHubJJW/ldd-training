@@ -15,6 +15,7 @@ int main(void)
     int i;
     char pix[4] = {0x00, 0xff, 0x00, 0xff};
 
+    printf("printf test module\n");
     i = 10000;
     fd = open("/dev/cdata", O_RDWR);
     ioctl(fd, CDATA_CLEAR, &i);
