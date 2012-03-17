@@ -1,4 +1,6 @@
+
 obj-m := cdata.o
+#obj-m := cdata-ts.o
 
 #KDIR := /lib/module/2.6.24-26-generic/build
 KDIR := /lib/modules/2.6.32-33-generic/build

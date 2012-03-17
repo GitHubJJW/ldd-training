@@ -11,30 +11,17 @@
 
 int main(void)
 {
-	int fd;
-	int i;
-	char pix[4] = {0x00, 0xff, 0x00, 0xff};
+    int fd;
+    int i;
+    char pix[4] = {0x00, 0xff, 0x00, 0xff};
+    char *fb;
 
-	i = 10000;
-    	pid_t pid = fork();
-   	fd = open("/dev/cdata", O_RDWR);
-    	//ioctl(fd, CDATA_CLEAR, &i);
-
-    	//pid_t pid = fork();
-    	if( 0 == pid ){
-    		while(1){
-			write(fd, pix, 4);
-		}
-    	} else {
-		while(1){
-			write(fd, pix, 3);
-		}  
-	}
-	
-/*
-    	while(1) {
-		write(fd, pix, 4);
-    	}
-*/
-    	close(fd);
-};
+    i = 10000;
+    fd = open("/dev/cdata", O_RDWR);
+    //ioctl(fd, CDATA_CLEAR, &i);
+    //while(1) {
+    // write(fd, pix, 4);
+    //}
+    fb = (char *)mmap(0, 1024, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    close(fd);
+}

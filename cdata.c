@@ -94,7 +94,7 @@ void cdata_wake_up(unsigned long priv)
 {
 	struct cdata_t *cdata = (struct cdata *)priv;
 	struct timer_list *sched;
-        wait_queue_head_t *wq;
+    	wait_queue_head_t *wq;
 
 	sched = &cdata->sched_timer;
 	wq = &cdata->wq;
@@ -140,7 +140,7 @@ loff_t *off)
 			wait.flags = 0;
 			wait.task = current;
 			add_wait_queue(wq, &wait);
-		repeat:
+repeat:
 			current->state = TASK_INTERRUPTIBLE;
 			schedule();
  
@@ -155,9 +155,8 @@ loff_t *off)
 		copy_from_user(&pixel[index], &buf[i], 1);
 		index++;
 	}
-	
-		cdata->index = index;
 
+    cdata->index = index;
 	return 0;
 }
 
@@ -185,17 +184,33 @@ unsigned int cmd, unsigned long arg)
 
 	switch (cmd) {
 		case CDATA_CLEAR:
-			n = *((int *)arg); // FIXME: dirty
 			printk(KERN_INFO "CDATA_CLEAR: %d pixel\n", n);
-
-			// FIXME: Lock
-			fb = cdata->fb;
-			// FIXME: unlock
-			for (i = 0; i < n; i++)
-				writel(0x00ff00ff, fb++);
-
-		break;
+			return 0;
 	}
+
+	return -ENOTTY;
+}
+
+int cdata_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	unsigned long from;
+	unsigned long to;
+	unsigned long size;
+
+	from = vma->vm_start;
+	to = 0x33f00000;
+	size = vma->vm_end-vma->vm_start;
+
+	while (size) {
+		remap_page_range(from, to, PAGE_SIZE, PAGE_SHARED);
+
+		from += PAGE_SIZE;
+		to += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+
+	printk(KERN_ALERT "vma start: %p\n", vma->vm_start);
+	printk(KERN_ALERT "vma end: %p\n", vma->vm_end);
 
 	return 0;
 }
@@ -207,7 +222,7 @@ static struct file_operations cdata_fops = {
 	read: cdata_read,
 	write: cdata_write,
 	ioctl: cdata_ioctl,
-
+	mmap: cdata_mmap,
 };
 
 int cdata_init_module(void)
