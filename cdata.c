@@ -15,7 +15,9 @@
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <linux/semaphore.h>
+#include <linux/spinlock.h>
 #include "cdata_ioctl.h"
+
 
 #define BUF_SIZE (128)
 #define LCD_SIZE (320*240*4)
@@ -29,8 +31,9 @@ struct cdata_t {
     struct timer_list flush_timer;
     struct timer_list sched_timer;
 
-    wait_queue_head_t wq;
-	struct semaphore  sem;
+    wait_queue_head_t 	wq;
+	struct semaphore  	sem;
+	spinlock_t 	  		lock;
 };
 
 static int cdata_open(struct inode *inode, struct file *filp)
@@ -55,6 +58,7 @@ static int cdata_open(struct inode *inode, struct file *filp)
 	init_waitqueue_head(&cdata->wq);
 	
 	sema_init(&cdata->sem, 1);
+	spin_lock_init(&cdata->lock);
 
 	filp->private_data = (void *)cdata;
 
@@ -65,7 +69,7 @@ static ssize_t cdata_read(struct file *filp, char *buf, size_t size, loff_t *off
 {
 	return 0;
 }
-
+//kernel timer use busy waiting : spin_lock, spin_unlock
 void flush_lcd(unsigned long priv)
 {
 	struct cdata_t *cdata = (struct cdata *)priv;
@@ -77,10 +81,12 @@ void flush_lcd(unsigned long priv)
 	int j;
 
 	fb = (unsigned char *)cdata->fb;
-
+	
+	spin_lock(&cdata->lock);
 	pixel = cdata->buf;
 	index = cdata->index;
 	offset = cdata->offset;
+	spin_unlock(&cdata->lock);
 
 	for (i = 0; i < index; i++) {
 		writeb(pixel[i], fb+offset);
@@ -124,8 +130,12 @@ loff_t *off)
 
 	down_interruptible(&cdata->sem);
 
+
+	spin_lock(&cdata->lock);
 	pixel = cdata->buf;
 	index = cdata->index;
+	spin_unlock(&cdata->lock);
+
 	timer = &cdata->flush_timer;
 	sched = &cdata->sched_timer;
 	wq = &cdata->wq;
