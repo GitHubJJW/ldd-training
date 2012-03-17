@@ -131,10 +131,10 @@ loff_t *off)
 	down_interruptible(&cdata->sem);
 
 
-	spin_lock(&cdata->lock);
+	spin_lock_irqsave(&cdata->lock);
 	pixel = cdata->buf;
 	index = cdata->index;
-	spin_unlock(&cdata->lock);
+	spin_unlock_irqsave(&cdata->lock);
 
 	timer = &cdata->flush_timer;
 	sched = &cdata->sched_timer;
