@@ -156,11 +156,15 @@ sched->function = cdata_wake_up;
 sched->data = (unsigned long)cdata;
 add_timer(sched);
 
-wait.flags = 0;
-wait.task = current;
-add_wait_queue(wq, &wait);
+//wait.flags = 0;
+//wait.task = current;
+//add_wait_queue(wq, &wait);
 repeat:
-  current->state = TASK_INTERRUPTIBLE;
+  //current->state = TASK_INTERRUPTIBLE;
+
+/*** SMP safe ****/
+prepare_to_wait(wp, &wait, TASK_INTERRUPTIBLE);
+
 schedule();
  
 down_interruptible(&cdata->sem);

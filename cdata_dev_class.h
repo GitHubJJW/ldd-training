@@ -2,7 +2,7 @@
 #define __CDATA_DEV_CLASS_H__
 
 #define MAX_MINOR 15
-
+/***** provide down layer *****/
 struct cdata_dev {
 	int minor;
 
