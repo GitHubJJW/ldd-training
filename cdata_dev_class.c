@@ -17,10 +17,10 @@
 
 /* private data structure */
 struct cdata_dev_data {
-	struct cdata_dev *ops;
+	struct cdata_dev *ops;//down layer
 	struct miscdevice misc;
 
-	int minor;
+	int minor;  //up layer
 };
 
 static struct cdata_dev_data *cdata_dev_data[MAX_MINOR];
@@ -76,7 +76,7 @@ int cdata_device_register(struct cdata_dev *ops)
 	kmalloc(sizeof(struct cdata_dev_data), GFP_KERNEL);
 	memset(data, 0, sizeof(struct cdata_dev_data));
 
-/***************** misc set ****************************/
+/***************** misc save down layer ****************************/
 
 	data->ops = ops;
 	data->minor = minor;
@@ -86,7 +86,7 @@ int cdata_device_register(struct cdata_dev *ops)
 	data->misc.minor = 20+minor;
 	data->misc.name = name;
 	data->misc.fops = &cdata_dev_fops;
-/**************** misc register ***********************/
+/**************** misc register up layer ***********************/
 	misc_register(&data->misc);
 	printk(KERN_ALERT "cdata_dev: registering %s to misc\n", name);
 
